@@ -2,8 +2,6 @@
 using System;
 using System.Collections.Generic;
 using System.Configuration;
-using System.Data;
-using System.Globalization;
 
 namespace TrackTaskTime
 {
@@ -15,31 +13,38 @@ namespace TrackTaskTime
             var fileName = ConfigurationManager.AppSettings.Get("FileName");
             var sheetName = ConfigurationManager.AppSettings.Get("SheetName");
 
+            var taskName = string.Empty;
+            var someDate = DateTime.Now;
+            var time = someDate.ToString("hh:mm tt");
+            var date = someDate.ToString("dd/MMM/yyyy");
+
+            int newRowNumber;
+            if (args.Length > 0)
+                taskName = args[0];
+
             XLWorkbook workbook = new XLWorkbook(fileName);
             var ws = workbook.Worksheets.Worksheet(sheetName);
             var range = ws.RangeUsed();
             var lr = range.LastRow();
-            //copying last row to new row
-            var newRowNumber = lr.RowNumber() + 1;
-            lr.CopyTo(ws.Cell(newRowNumber, 1));
 
             //Updating the completed date
-            var someDate = DateTime.Now;
-            var time = someDate.ToString("hh:mm tt");
-            var date = someDate.ToString("dd/MMM/yyyy");
-            var listOfStrings = new List<String>();
-            listOfStrings.Add(time);
-            ws.Cell(lr.RowNumber(), 4).InsertData(listOfStrings);
+            var taskToBeCompleted = new List<string>
+            {
+                time
+            };
+            ws.Cell(lr.RowNumber(), 4).InsertData(taskToBeCompleted);
 
 
-            //Updating newly added row
-            var taskName = "New Task";
-            if (args.Length > 0)
-                taskName = args[0];
-            var listOfArr = new List<string[]>();
-            listOfArr.Add(new string[] { date, taskName, time });
-            ws.Cell(newRowNumber, 1).InsertData(listOfArr);
-            
+            //copying last row to new row if its a new task
+            if (!string.IsNullOrWhiteSpace(taskName))
+            {
+                newRowNumber = lr.RowNumber() + 1;
+                lr.CopyTo(ws.Cell(newRowNumber, 1));
+                var newTaskDetails = new List<string[]>();
+                newTaskDetails.Add(new string[] { date, taskName, time, string.Empty });
+                ws.Cell(newRowNumber, 1).InsertData(newTaskDetails);
+            }
+
             workbook.Save();
         }
     }
